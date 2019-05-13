@@ -4,8 +4,8 @@
 #include "timerc.h"
 #define gpuErrchk(ans) {gpuAssert((ans),__FILE__,__LINE__);}
 
-__device__ int global_num_areas = 1024*1024*8;
-int global_num_areas_serial = 1024*1024*8;
+__device__ int global_num_areas = 32;
+int global_num_areas_serial = 32;
 
 __global__ void warmup(){
 
@@ -70,6 +70,7 @@ int * lower_envelope(int * coordinate_array, int size){
       }
     }
   }
+  printLowerEnvelopeSerial(min_y,number_areas);
   return min_y;
 };
 
@@ -92,6 +93,9 @@ __global__ void parallel_lower_envelope(int * coordinate_array, int number_of_th
     }   
   }
   __syncthreads();
+  if(cumulative_thread_id == 0){
+    printLowerEnvelope(min_y,number_areas);
+  }
 };
 
 int main(){
@@ -136,7 +140,7 @@ int main(){
   warmup<<<1,1>>>();
 
   gstart();
-  parallel_lower_envelope<<<512,32>>>(device_input,512*32,16,device_output); 
+  parallel_lower_envelope<<<4,4>>>(device_input,4,16,device_output); 
   gend(&GPUtime);
   printf("Naive GPU time is %f \n", GPUtime);
   gpuErrchk(cudaPeekAtLastError());
